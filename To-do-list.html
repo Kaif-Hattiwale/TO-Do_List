@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To-Do List</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f5f5f5;
+        margin: 0;
+        padding: 0;
+    }
+    .todo-container {
+        max-width: 600px;
+        margin: 20px auto;
+        background-color: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+    }
+    h1 {
+        text-align: center;
+        color: #333;
+    }
+    .task {
+        margin-bottom: 10px;
+        padding: 10px;
+        background-color: #f9f9f9;
+        border-radius: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+    }
+    .task:hover {
+        background-color: #eaeaea;
+    }
+    .task.completed {
+        text-decoration: line-through;
+        color: #888;
+    }
+    .task .delete-btn {
+        background-color: #ff6b6b;
+        color: #fff;
+        border: none;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    .task .delete-btn:hover {
+        background-color: #ff4f4f;
+    }
+    #taskInput {
+        width: calc(100% - 50px);
+        padding: 10px;
+        border: none;
+        border-radius: 5px;
+        margin-right: 10px;
+    }
+    #addBtn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    #addBtn:hover {
+        background-color: #45a049;
+    }
+</style>
+</head>
+<body>
+
+<div class="todo-container">
+    <h1>To-Do List</h1>
+    <div id="tasks">
+        <!-- Tasks will be dynamically added here -->
+    </div>
+    <div>
+        <input type="text" id="taskInput" placeholder="Add new task">
+        <button id="addBtn">Add Task</button>
+    </div>
+</div>
+
+<script>
+    // Load tasks from local storage
+    document.addEventListener('DOMContentLoaded', function() {
+        var savedTasks = JSON.parse(localStorage.getItem('tasks')) || [];
+        savedTasks.forEach(function(task) {
+            addTask(task.text, task.completed);
+        });
+    });
+
+    // Function to add a new task
+    function addTask(taskText, completed = false) {
+        var tasksContainer = document.getElementById("tasks");
+        var taskElement = document.createElement("div");
+        taskElement.classList.add("task");
+        if (completed) {
+            taskElement.classList.add("completed");
+        }
+        var checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = completed;
+        checkbox.addEventListener("change", function() {
+            if (this.checked) {
+                taskElement.classList.add("completed");
+            } else {
+                taskElement.classList.remove("completed");
+            }
+            saveTasks();
+        });
+        var taskSpan = document.createElement("span");
+        taskSpan.textContent = taskText;
+        var deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "❌";
+        deleteBtn.classList.add("delete-btn");
+        deleteBtn.addEventListener("click", function() {
+            taskElement.remove();
+            saveTasks();
+        });
+        taskElement.appendChild(checkbox);
+        taskElement.appendChild(taskSpan);
+        taskElement.appendChild(deleteBtn);
+        tasksContainer.appendChild(taskElement);
+        saveTasks();
+    }
+
+    // Function to save tasks to local storage
+    function saveTasks() {
+        var tasks = [];
+        var taskElements = document.querySelectorAll(".task");
+        taskElements.forEach(function(taskElement) {
+            tasks.push({
+                text: taskElement.querySelector("span").textContent,
+                completed: taskElement.classList.contains("completed")
+            });
+        });
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+    }
+
+    // Add task button event listener
+    document.getElementById("addBtn").addEventListener("click", function() {
+        var taskInput = document.getElementById("taskInput");
+        var taskText = taskInput.value.trim();
+        if (taskText === "") {
+            alert("Please enter a task!");
+            return;
+        }
+        addTask(taskText);
+        taskInput.value = "";
+    });
+
+    // Drag and drop functionality
+    var dragSrcEl = null;
+
+    function handleDragStart(e) {
+        dragSrcEl = this;
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/html', this.innerHTML);
+    }
+
+    function handleDragOver(e) {
+        if (e.preventDefault) {
+            e.preventDefault(); // Necessary. Allows us to drop.
+        }
+        e.dataTransfer.dropEffect = 'move'; // See the section on the DataTransfer object.
+
+        return false;
+    }
+
+    function handleDragEnter(e) {
+        // this / e.target is the current hover target.
+        this.classList.add('over');
+    }
+
+    function handleDragLeave(e) {
+        this.classList.remove('over'); // this / e.target is previous target element.
+    }
+
+    function handleDrop(e) {
+        // this / e.target is current target element.
+
+        if (e.stopPropagation) {
+            e.stopPropagation(); // stops the browser from redirecting.
+        }
+
+        // Don't do anything if dropping the same column we're dragging.
+        if (dragSrcEl != this) {
+            // Set the source column's HTML to the HTML of the column we dropped on.
+            dragSrcEl.innerHTML = this.innerHTML;
+            this.innerHTML = e.dataTransfer.getData('text/html');
+            saveTasks();
+        }
+
+        return false;
+    }
+
+    function handleDragEnd(e) {
+        // this/e.target is the source node.
+        this.classList.remove('over');
+    }
+
+    var cols = document.querySelectorAll('.task');
+    [].forEach.call(cols, function(col) {
+        col.addEventListener('dragstart', handleDragStart, false);
+        col.addEventListener('dragenter', handleDragEnter, false);
+        col.addEventListener('dragover', handleDragOver, false);
+        col.addEventListener('dragleave', handleDragLeave, false);
+        col.addEventListener('drop', handleDrop, false);
+        col.addEventListener('dragend', handleDragEnd, false);
+    });
+</script>
+
+</body>
+</html>
